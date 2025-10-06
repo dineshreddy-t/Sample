@@ -1,0 +1,85 @@
+### **Overview**
+
+This document summarizes three proposed architectural patterns to automate the approval and evidence submission flow across existing enterprise systems (Taxonomy, APEX, App Hero, AuditBoard, and SIMPL).
+Each pattern handles approvals, validations, and evidence linkage differently while leveraging existing APIs and data models.
+
+---
+
+## **Architecture 1 — Thin Orchestrator**
+
+**Concept:**
+A small Spring Boot orchestrator coordinates existing APIs and business validations in sequence using REST calls.
+
+**Technical Highlights:**
+
+* Validates input data, triggers approval logic, and attaches evidence through direct API integrations.
+* Uses YAML/JSON-driven configuration for approval gates and rule sets.
+* Implements custom retry, timeout, and idempotency logic in Java code.
+* Calls downstream APIs sequentially, managing responses and error propagation.
+* Focuses on orchestration only; persistence and business rules remain in existing systems.
+* Easy to extend or debug — minimal new code footprint and direct data flow visibility.
+
+**Best Fit:**
+Quick to implement where existing systems already provide stable APIs and predictable control flow.
+
+---
+
+## **Architecture 2 — Workflow Engine**
+
+**Concept:**
+A workflow engine executes pre-defined process models (e.g., BPMN) combining user approvals and automated API calls.
+
+**Technical Highlights:**
+
+* Defines process steps as **User Tasks** (e.g., approvals in App Hero) and **Service Tasks** (API calls to APEX/SIMPL).
+* Engine persists workflow state, allowing process resumption and audit tracking.
+* Supports built-in retry, escalation, SLA timers, and compensation logic through configuration.
+* Provides clear task lifecycle management and human-in-loop visibility.
+* Developers design workflows, map payloads, and handle business rules declaratively.
+* Well-suited for long-running approvals or processes with both manual and automated steps.
+
+**Best Fit:**
+Recommended default choice for maintainable, auditable, and evolving automation flows.
+
+---
+
+## **Architecture 3 — Event Choreography**
+
+**Concept:**
+Each system emits domain events (e.g., “ChangeSetApproved”) and other services independently react to them.
+
+**Technical Highlights:**
+
+* Publishes and consumes domain events asynchronously via Kafka/Rabbit (or equivalent).
+* Services act independently, performing updates and attaching evidence upon receiving relevant events.
+* Enables parallel processing and natural idempotency through event keys.
+* Uses correlation IDs for tracking and monitoring event sequences.
+* Encourages schema-driven communication and clear contract ownership per domain.
+* Provides flexibility for adding new listeners without modifying existing flows.
+
+**Best Fit:**
+When large-scale parallel operations or per-system ownership is required, and event streaming is already part of the ecosystem.
+
+---
+
+## **Summary Comparison**
+
+| Aspect                | Thin Orchestrator        | Workflow Engine        | Event Choreography    |
+| --------------------- | ------------------------ | ---------------------- | --------------------- |
+| **Integration Style** | Direct REST coordination | Model-driven workflows | Asynchronous eventing |
+| **Complexity**        | Low                      | Moderate               | High                  |
+| **Maintainability**   | Code-based               | Configurable (BPMN)    | Schema-driven         |
+| **Human Tasks**       | External handling        | Built-in task UI       | Not applicable        |
+| **Data Flow Control** | Centralized              | Engine-controlled      | Distributed           |
+| **Scalability**       | Moderate                 | High                   | Very high             |
+
+---
+
+### **Recommendation**
+
+Start with **Architecture 2 (Workflow Engine)** as the baseline for MVP — it provides a structured approach, built-in resiliency, and clear visibility without heavy code maintenance.
+Architectures 1 and 3 can complement it later for quick integrations or large-scale event-based automation.
+
+---
+
+Would you like me to format this Confluence page with **macros** (like status indicators, info panels, and table colors) so it looks more polished for presentation?
